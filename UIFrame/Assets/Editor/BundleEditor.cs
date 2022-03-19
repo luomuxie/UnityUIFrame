@@ -109,10 +109,28 @@ public class BundleEditor
         }
         DeleteAB();
         //生成自己的配置表
-
+        WriteData(resPathDic);
         BuildPipeline.BuildAssetBundles(Application.streamingAssetsPath, BuildAssetBundleOptions.ChunkBasedCompression, EditorUserBuildSettings.activeBuildTarget);
 
     }
+
+    static void WriteData(Dictionary<string,string> resPathDic)
+    {
+        AssetBundleConfig config = new AssetBundleConfig();
+        config.ABList = new List<ABBase>();
+        foreach (string path in resPathDic.Keys)
+        {
+            
+        }
+
+        //写入xml
+
+        //写入二进制
+
+    }
+
+
+
     
     //清理多余包体
     static void DeleteAB()
