@@ -15,6 +15,8 @@ public class BundleEditor
     {
         m_allFileDir.Clear();
         m_allFilesAB.Clear();
+        m_allPrefabPaths.Clear();
+
         ABConfig aBConfig = AssetDatabase.LoadAssetAtPath<ABConfig>(ABCONFIGPATH);
 
         foreach (ABConfig.FileDirName  vo in aBConfig.m_allFileDirName)
@@ -72,6 +74,13 @@ public class BundleEditor
         foreach (string name in m_allPrefabPaths.Keys)
         {
             setABName(name, m_allPrefabPaths[name]);
+        }
+
+        string[] oldABNames =   AssetDatabase.GetAllAssetBundleNames();
+        for (int i = 0; i < oldABNames.Length; i++)
+        {
+            AssetDatabase.RemoveAssetBundleName(oldABNames[i], true);
+            EditorUtility.DisplayProgressBar("清除AB包名", "名字：" + oldABNames[i], i * 1f / oldABNames.Length);
         }
         
         EditorUtility.ClearProgressBar();        
