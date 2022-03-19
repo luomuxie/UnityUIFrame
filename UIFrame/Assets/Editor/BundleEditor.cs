@@ -14,12 +14,16 @@ public class BundleEditor
     public static List<string> m_allFilesAB = new List<string>();
     public static Dictionary<string, List<string>> m_allPrefabPaths = new Dictionary<string, List<string>>();
 
+    private static List<string> m_configFiles = new List<string>();
+
+
     [MenuItem("Tools/打包")]
     public static void Bulid()
     {
         m_allFileDir.Clear();
         m_allFilesAB.Clear();
         m_allPrefabPaths.Clear();
+        m_configFiles.Clear();
 
         ABConfig aBConfig = AssetDatabase.LoadAssetAtPath<ABConfig>(ABCONFIGPATH);
 
@@ -33,6 +37,8 @@ public class BundleEditor
             {
                 m_allFileDir.Add(vo.ABname, vo.Path);
                 m_allFilesAB.Add(vo.Path);
+                m_configFiles.Add(vo.Path);
+
             }
             //Debug.Log(vo.ABname +" "+ vo.Path );
         }
@@ -41,6 +47,7 @@ public class BundleEditor
         {
             string path = AssetDatabase.GUIDToAssetPath(allStr[i]);
             EditorUtility.DisplayProgressBar("查找prefab", "prefab:" + path, i * 1.0f / allStr.Length);
+            m_configFiles.Add(path);
             if (!isContainAllFileAB(path))
             {
                 GameObject obj = AssetDatabase.LoadAssetAtPath<GameObject>(path);
@@ -105,8 +112,12 @@ public class BundleEditor
              string[] paths =  AssetDatabase.GetAssetPathsFromAssetBundle(allAbNames[i]);
             for (int j = 0; j < paths.Length; j++)
             {
-                if (paths[j].EndsWith(".cs")) continue;
-                resPathDic.Add(paths[j], allAbNames[i]);
+                if (paths[j].EndsWith(".cs") ) continue;
+                if (isValidPath(paths[j]))
+                {
+                    resPathDic.Add(paths[j], allAbNames[i]);
+                }
+                
             }
         }
         DeleteAB();
@@ -126,6 +137,7 @@ public class BundleEditor
             aBBase.Path = path;
             aBBase.Crc = CRC32.GetCRC32(path);
             aBBase.ABname = resPathDic[path];
+            aBBase.ABDependce = new List<string>();
             aBBase.AssetName = path.Remove(0, path.LastIndexOf("/") + 1);
             string[] resDependce = AssetDatabase.GetDependencies(path);
             for (int i = 0; i < resDependce.Length; i++)
@@ -161,7 +173,10 @@ public class BundleEditor
         fileStream.Close();
 
         //写入二进制
-
+        foreach (ABBase item in config.ABList)
+        {
+            item.Path = "";
+        }
         string bytePath = m_bundleTargetPath + "/AssetBundleConfig.bytes";
         FileStream fs = new FileStream(bytePath,FileMode.Create,FileAccess.ReadWrite,FileShare.ReadWrite);
         BinaryFormatter binary = new BinaryFormatter();
@@ -208,6 +223,24 @@ public class BundleEditor
 
         return false;
     }
+
+    /// <summary>
+    /// 是否为有效路径
+    /// </summary>
+    /// <param name="path"></param>
+    /// <returns></returns>
+    static bool isValidPath(string path)
+    {
+        for (int i = 0; i < m_configFiles.Count; i++)
+        {
+            if (path.Contains(m_configFiles[i]))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
 
 
     static void setABName(string name,string path)
