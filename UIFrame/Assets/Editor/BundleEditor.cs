@@ -2,10 +2,12 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
+using System.IO;
 
 public class BundleEditor
 {
     public static string ABCONFIGPATH = "Assets/Editor/ABConfig.asset";
+    public static string m_bundleTargetPath = Application.streamingAssetsPath;
     public static Dictionary<string, string> m_allFileDir = new Dictionary<string,string>();
     public static List<string> m_allFilesAB = new List<string>();
     public static Dictionary<string, List<string>> m_allPrefabPaths = new Dictionary<string, List<string>>();
@@ -105,11 +107,51 @@ public class BundleEditor
                 resPathDic.Add(paths[j], allAbNames[i]);
             }
         }
+        DeleteAB();
         //生成自己的配置表
 
         BuildPipeline.BuildAssetBundles(Application.streamingAssetsPath, BuildAssetBundleOptions.ChunkBasedCompression, EditorUserBuildSettings.activeBuildTarget);
 
     }
+    
+    //清理多余包体
+    static void DeleteAB()
+    {
+       string[] allBundlesName = AssetDatabase.GetAllAssetBundleNames();
+       DirectoryInfo directory = new DirectoryInfo(m_bundleTargetPath);
+        FileInfo[] files = directory.GetFiles("*",SearchOption.AllDirectories);
+        for (int i = 0; i < files.Length; i++)
+        {
+            if(isContationABName(files[i].Name,allBundlesName) || files[i].Name.EndsWith(".meta"))
+            {
+                continue;
+            }
+            else
+            {
+                if (File.Exists(files[i].FullName))
+                {
+                    File.Delete(files[i].FullName); 
+                }
+            }
+        }
+
+       
+    }
+
+    static bool isContationABName(string name,string[] strs)
+    {
+        for (int i = 0; i < strs.Length; i++)
+        {
+            if(name ==strs[i])
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
     static void setABName(string name,string path)
     {
         AssetImporter assetImporter = AssetImporter.GetAtPath(path);
