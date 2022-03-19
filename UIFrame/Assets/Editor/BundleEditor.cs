@@ -28,7 +28,7 @@ public class BundleEditor
                 m_allFileDir.Add(vo.ABname, vo.Path);
                 m_allFilesAB.Add(vo.Path);
             }
-            Debug.Log(vo.ABname +" "+ vo.Path );
+            //Debug.Log(vo.ABname +" "+ vo.Path );
         }
         string[] allStr = AssetDatabase.FindAssets("t:Prefab",null);
         for (int i = 0; i < allStr.Length; i++)
@@ -43,7 +43,7 @@ public class BundleEditor
                 allDependPath.Add(path);
                 for (int j = 0; j < allDepend.Length; j++)
                 {
-                    Debug.Log(allDepend[j]);
+                    //Debug.Log(allDepend[j]);
                     if(!isContainAllFileAB(allDepend[j]) && !allDepend[j].EndsWith(".cs")){
                         m_allFilesAB.Add(allDepend[j]);
                         allDependPath.Add((string)allDepend[j]);
@@ -62,9 +62,44 @@ public class BundleEditor
             }
 
         }
+
+        foreach (string name in m_allFileDir.Keys)
+        {
+            setABName(name, m_allFileDir[name]);
+        }
+
+        
+        foreach (string name in m_allPrefabPaths.Keys)
+        {
+            setABName(name, m_allPrefabPaths[name]);
+        }
+        
         EditorUtility.ClearProgressBar();        
 
     }
+    static void setABName(string name,string path)
+    {
+        AssetImporter assetImporter = AssetImporter.GetAtPath(path);
+        if(assetImporter == null)
+        {
+            Debug.Log("找不到对应文件:"+path);
+        }
+        else
+        {
+            assetImporter.assetBundleName = name;
+        }
+    }
+
+    static void setABName(string name,List<string> paths)
+    {
+        for (int i = 0; i < paths.Count; i++)
+        {
+            setABName(name,paths[i]);
+        }
+    }
+    
+    
+
     //是否包含路径
     static bool isContainAllFileAB(string path)
     {
