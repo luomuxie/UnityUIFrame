@@ -76,14 +76,38 @@ public class BundleEditor
             setABName(name, m_allPrefabPaths[name]);
         }
 
+        buildAseetsBundle();
+
         string[] oldABNames =   AssetDatabase.GetAllAssetBundleNames();
         for (int i = 0; i < oldABNames.Length; i++)
         {
             AssetDatabase.RemoveAssetBundleName(oldABNames[i], true);
             EditorUtility.DisplayProgressBar("清除AB包名", "名字：" + oldABNames[i], i * 1f / oldABNames.Length);
         }
+
+        AssetDatabase.Refresh();        
+        EditorUtility.ClearProgressBar();    
         
-        EditorUtility.ClearProgressBar();        
+
+    }
+
+    static void buildAseetsBundle()
+    {
+        string[] allAbNames = AssetDatabase.GetAllAssetBundleNames();
+        Dictionary<string,string> resPathDic = new Dictionary<string,string>();
+
+        for (int i = 0; i < allAbNames.Length; i++)
+        {
+             string[] paths =  AssetDatabase.GetAssetPathsFromAssetBundle(allAbNames[i]);
+            for (int j = 0; j < paths.Length; j++)
+            {
+                if (paths[j].EndsWith(".cs")) continue;
+                resPathDic.Add(paths[j], allAbNames[i]);
+            }
+        }
+        //生成自己的配置表
+
+        BuildPipeline.BuildAssetBundles(Application.streamingAssetsPath, BuildAssetBundleOptions.ChunkBasedCompression, EditorUserBuildSettings.activeBuildTarget);
 
     }
     static void setABName(string name,string path)
