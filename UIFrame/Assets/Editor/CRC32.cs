@@ -49,7 +49,8 @@ class CRC32
 
         for (uint i = 0; i < iCount; i++)
         {
-            crc = (crc >> 8) ^ crcTable[(crc ^ bytes[i]) ^ 0xFF];
+            crc = (crc << 8) ^ crcTable[(crc >> 24) ^ bytes[i]];
+
         }
 
         return crc ^ 0xffffffff;

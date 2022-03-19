@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using System.IO;
+using System.Xml.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
 
 public class BundleEditor
 {
@@ -120,13 +122,51 @@ public class BundleEditor
         config.ABList = new List<ABBase>();
         foreach (string path in resPathDic.Keys)
         {
-            
+            ABBase aBBase = new ABBase();
+            aBBase.Path = path;
+            aBBase.Crc = CRC32.GetCRC32(path);
+            aBBase.ABname = resPathDic[path];
+            aBBase.AssetName = path.Remove(0, path.LastIndexOf("/") + 1);
+            string[] resDependce = AssetDatabase.GetDependencies(path);
+            for (int i = 0; i < resDependce.Length; i++)
+            {
+                string tempPath = resDependce[i];
+                if(tempPath ==path || path.StartsWith(".cs"))
+                {
+                    continue;
+                }
+
+                string abName = "";
+                if(resPathDic.TryGetValue(tempPath, out abName))
+                {
+                    if (abName == resPathDic[path]) continue;
+                    if (!aBBase.ABDependce.Contains(abName))
+                    {
+                        aBBase.ABDependce.Add(abName);
+                    }
+                }
+            }
+
+            config.ABList.Add(aBBase);  
         }
 
         //写入xml
+        string xmlPath = Application.dataPath + "/AssetBundleConfig.xml";
+        if(File.Exists(xmlPath)) File.Delete(xmlPath);
+        FileStream fileStream = new FileStream(xmlPath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite);
+       StreamWriter sw = new StreamWriter(fileStream);
+        XmlSerializer xmlSerializer = new XmlSerializer(config.GetType());
+        xmlSerializer.Serialize(sw, config);
+        sw.Close();
+        fileStream.Close();
 
         //写入二进制
 
+        string bytePath = m_bundleTargetPath + "/AssetBundleConfig.bytes";
+        FileStream fs = new FileStream(bytePath,FileMode.Create,FileAccess.ReadWrite,FileShare.ReadWrite);
+        BinaryFormatter binary = new BinaryFormatter();
+        binary.Serialize(fs, config);
+        fs.Close();      
     }
 
 
