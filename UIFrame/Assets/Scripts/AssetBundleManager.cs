@@ -43,6 +43,51 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
         
         return true;
     }
+
+    public ResourceItem LoadResourceAssetBundle(uint crc)
+    {
+        ResourceItem item = null;
+        if(!m_ResourceItemDic.TryGetValue(crc, out item) || item == null)
+        {
+            Debug.Log(string.Format("LoadResourceAssetBundle error:can not find crc {0} in AssetBundleConfig", crc.ToString()));
+            return item;
+        }
+        if(item.m_AssetBundle != null)
+        {
+            return item;
+        }
+        item.m_AssetBundle = LoadAssetBundle(item.m_ABName);
+        if(item.m_DependAssetBundles != null)
+        {
+            for (int i = 0; i < item.m_DependAssetBundles.Count; i++)
+            {
+                LoadAssetBundle(item.m_DependAssetBundles[i]);
+            }
+        }
+        return item;
+    }
+
+    private AssetBundle LoadAssetBundle(string name)
+    {
+        AssetBundle bundle = null;
+        string fullPath = Application.streamingAssetsPath+ "/"+name;
+        if (File.Exists(fullPath))
+        {
+            bundle = AssetBundle.LoadFromFile(fullPath);
+        }
+        if(bundle == null)
+        {
+            Debug.Log("Load AssetBundle Error:"+fullPath);
+        }
+        return bundle;
+    }
+
+}
+
+public class AssetBundleItem
+{
+    public AssetBundle m_AssetBundle;
+    public int m_RefCnt;
 }
 
 public class ResourceItem
