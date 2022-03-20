@@ -177,7 +177,7 @@ public class BundleEditor
         {
             item.Path = "";
         }
-        string bytePath = m_bundleTargetPath + "/AssetBundleConfig.bytes";
+        string bytePath = "Assets/GameData/Data/ABData/AssetBundleConfig.bytes";
         FileStream fs = new FileStream(bytePath,FileMode.Create,FileAccess.ReadWrite,FileShare.ReadWrite);
         BinaryFormatter binary = new BinaryFormatter();
         binary.Serialize(fs, config);
@@ -195,7 +195,7 @@ public class BundleEditor
         FileInfo[] files = directory.GetFiles("*",SearchOption.AllDirectories);
         for (int i = 0; i < files.Length; i++)
         {
-            if(isContationABName(files[i].Name,allBundlesName) || files[i].Name.EndsWith(".meta"))
+            if(isContationABName(files[i].Name,allBundlesName) || files[i].Name.EndsWith(".meta") )
             {
                 continue;
             }
@@ -271,7 +271,7 @@ public class BundleEditor
     {
         for (int i = 0; i < m_allFilesAB.Count; i++)
         {
-            if(m_allFilesAB[i] == path || path.Contains(m_allFilesAB[i])) return true;
+            if(m_allFilesAB[i] == path || path.Contains(m_allFilesAB[i]) && path.Replace(m_allFilesAB[i], "")[0].ToString() == "/") return true;
         }
         return false;
     }
