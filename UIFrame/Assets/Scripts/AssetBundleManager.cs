@@ -7,6 +7,8 @@ using UnityEngine;
 public class AssetBundleManager : Singleton<AssetBundleManager>
 {
     public Dictionary<uint, ResourceItem> m_ResourceItemDic = new Dictionary<uint, ResourceItem>();
+    public Dictionary<uint,AssetBundleItem> m_AssetBundleDic = new Dictionary<uint,AssetBundleItem>();
+    public ClassObjectPool<AssetBundleItem> m_AssetBundleItemPool = ObjectManager.Instance.getOrCreateClassPool<AssetBundleItem>(1000);
     public bool LoadAssetBundleConfig()
     {
         
@@ -67,20 +69,83 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
         return item;
     }
 
+    /// <summary>
+    /// 根据名字加载单assetbundle
+    /// </summary>
+    /// <param name="name"></param>
+    /// <returns></returns>
     private AssetBundle LoadAssetBundle(string name)
     {
-        AssetBundle bundle = null;
-        string fullPath = Application.streamingAssetsPath+ "/"+name;
-        if (File.Exists(fullPath))
+        uint crc = CRC32.GetCRC32(name);
+        AssetBundleItem item;
+        if(!m_AssetBundleDic.TryGetValue(crc,out item))
         {
-            bundle = AssetBundle.LoadFromFile(fullPath);
+            AssetBundle bundle = null;
+            string fullPath = Application.streamingAssetsPath + "/" + name;
+            if (File.Exists(fullPath))
+            {
+                bundle = AssetBundle.LoadFromFile(fullPath);
+            }
+            if (bundle == null)
+            {
+                Debug.Log("Load AssetBundle Error:" + fullPath);
+            }
+
+            item = m_AssetBundleItemPool.Spawn(true);
+            item.m_AssetBundle = bundle;
+            m_AssetBundleDic.Add(crc, item);
+        
         }
-        if(bundle == null)
-        {
-            Debug.Log("Load AssetBundle Error:"+fullPath);
-        }
-        return bundle;
+        item.m_RefCnt++;
+        return item.m_AssetBundle;
     }
+
+
+    /// <summary>
+    /// 根据crc查找ResourceItem
+    /// </summary>
+    /// <param name="crc"></param>
+    /// <returns></returns>
+    public ResourceItem FindResourceItem(uint crc)
+    {
+        return m_ResourceItemDic[crc];
+    }
+
+    /// <summary>
+    /// 释放资源
+    /// </summary>
+    /// <param name="item"></param>
+    public void ReleaseAsset(ResourceItem item)
+    {
+        if (item == null) return;
+        if(item.m_DependAssetBundles != null && item.m_DependAssetBundles.Count > 0)
+        {
+            for (int i = 0; i < item.m_DependAssetBundles.Count; i++)
+            {
+                UnLoadAssetBundle(item.m_DependAssetBundles[i]);
+            }
+        }
+        UnLoadAssetBundle(item.m_AssetName); 
+    }
+
+    private void UnLoadAssetBundle(string name)
+    {
+        AssetBundleItem item = null;
+        uint crc = CRC32.GetCRC32(name);
+        if(m_AssetBundleDic.TryGetValue(crc,out item) && item != null)
+        {
+            item.m_RefCnt--;
+            if(item.m_RefCnt<=0 && item.m_AssetBundle != null)
+            {
+                item.m_AssetBundle.Unload(true);
+                item.Rest();
+                m_AssetBundleItemPool.Recycle(item);
+                m_AssetBundleDic.Remove(crc);
+
+            }
+        }
+    }
+
 
 }
 
@@ -88,6 +153,11 @@ public class AssetBundleItem
 {
     public AssetBundle m_AssetBundle;
     public int m_RefCnt;
+    public void Rest()
+    {
+        m_AssetBundle = null;
+        m_RefCnt = 0;
+    }
 }
 
 public class ResourceItem
