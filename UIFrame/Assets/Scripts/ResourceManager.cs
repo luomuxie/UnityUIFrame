@@ -147,6 +147,21 @@ public class CMapList<T> where T : class,new ()
 {
     DoubleLinkList<T> m_DLink = new DoubleLinkList<T>();
     Dictionary<T,DoubleLinkListNode<T>> m_FindMap = new Dictionary<T, DoubleLinkListNode<T>> ();
+
+    ~CMapList()
+    {
+
+    }
+
+    public void Clear()
+    {
+        while(m_DLink.Taild != null)
+        {
+            Remove(m_DLink.Taild.t);
+        }
+
+    }
+
     /// <summary>
     /// 插入一个节点到表头
     /// </summary>
@@ -174,6 +189,10 @@ public class CMapList<T> where T : class,new ()
         }
     }
 
+    /// <summary>
+    /// 移除节点
+    /// </summary>
+    /// <param name="t"></param>
     public void Remove(T t)
     {
         DoubleLinkListNode<T> node = null;
@@ -194,6 +213,41 @@ public class CMapList<T> where T : class,new ()
         return m_DLink.Taild == null ? null : m_DLink.Taild.t;
     }
 
+    public int Size()
+    {
+        return m_FindMap.Count;
+    }
 
+    /// <summary>
+    /// 查找是否存在该节点
+    /// </summary>
+    /// <param name="t"></param>
+    /// <returns></returns>
+    public bool isFind(T t)
+    {
+        DoubleLinkListNode<T> node = null;
+        if(!m_FindMap.TryGetValue((T)t,out node) || node == null)
+        {
+            return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// 刷新某个节点，把节点移动到头部
+    /// </summary>
+    /// <param name="t"></param>
+    /// <returns></returns>
+    public bool Reflesh(T t)
+    {
+        DoubleLinkListNode<T> node = null;
+        if(!m_FindMap.TryGetValue(t,out node)|| node == null)
+        {
+            return false;
+        }
+        m_DLink.MoveToHead(node);
+        return true;
+
+    }
 }
 
