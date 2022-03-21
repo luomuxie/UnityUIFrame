@@ -141,8 +141,59 @@ public class DoubleLinkList<T> where T : class,new ()
 
     }
 
-
 }
 
+public class CMapList<T> where T : class,new ()
+{
+    DoubleLinkList<T> m_DLink = new DoubleLinkList<T>();
+    Dictionary<T,DoubleLinkListNode<T>> m_FindMap = new Dictionary<T, DoubleLinkListNode<T>> ();
+    /// <summary>
+    /// 插入一个节点到表头
+    /// </summary>
+    /// <param name="t"></param>
+    public void InsertToHead(T t)
+    {
+        DoubleLinkListNode<T> node = null;
+        if(m_FindMap.TryGetValue(t, out node) && node!= null)
+        {
+            m_DLink.AddToHeader(node);
+            return;
+        }
+        m_DLink.AddToHeader(t);
+        m_FindMap.Add(t,m_DLink.Head);
+    }
 
+    /// <summary>
+    /// 从链表尾部弹出一个节点
+    /// </summary>
+    public void Pop()
+    {
+        if(m_DLink.Taild != null)
+        {
+            Remove(m_DLink.Taild.t);
+        }
+    }
+
+    public void Remove(T t)
+    {
+        DoubleLinkListNode<T> node = null;
+        if(!m_FindMap.TryGetValue(t,out node) || node == null)
+        {
+            return;
+        }
+        m_DLink.RemoveNode(node); 
+        m_FindMap.Remove(t);
+    }
+
+    /// <summary>
+    /// 获取尾部节点
+    /// </summary>
+    /// <returns></returns>
+    public T Back()
+    {
+        return m_DLink.Taild == null ? null : m_DLink.Taild.t;
+    }
+
+
+}
 
