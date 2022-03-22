@@ -4,7 +4,15 @@ using UnityEngine;
 
 public class ResourceManager : Singleton<ResourceManager>
 {
-    
+    //缓存引用计数为零的资源列表，达到缓存最大的时候释放列表里面最早没用的资源
+    protected CMapList<ResourceItem> m_NoRefrenceAssetMapList = new CMapList<ResourceItem>();
+    //缓存使用的资源列表
+    public Dictionary<uint,ResourceItem> m_AssetDic { get; set; } = new Dictionary<uint,ResourceItem>();
+
+    public T loaadResource<T>(string path) where T : UnityEngine.Object
+    {
+
+    }
 }
 
 public class DoubleLinkListNode<T> where T : class,new ()
