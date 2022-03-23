@@ -8,7 +8,7 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
 {
     public Dictionary<uint, ResourceItem> m_ResourceItemDic = new Dictionary<uint, ResourceItem>();
     public Dictionary<uint,AssetBundleItem> m_AssetBundleDic = new Dictionary<uint,AssetBundleItem>();
-    public ClassObjectPool<AssetBundleItem> m_AssetBundleItemPool = ObjectManager.Instance.getOrCreateClassPool<AssetBundleItem>(1000);
+    public ClassObjectPool<AssetBundleItem> m_AssetBundleItemPool = ObjectManager.Instance.getOrCreateClassPool<AssetBundleItem>(100);
     public bool LoadAssetBundleConfig()
     {
         
@@ -125,7 +125,7 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
                 UnLoadAssetBundle(item.m_DependAssetBundles[i]);
             }
         }
-        UnLoadAssetBundle(item.m_AssetName); 
+        UnLoadAssetBundle(item.m_ABName); 
     }
 
     private void UnLoadAssetBundle(string name)
@@ -177,6 +177,9 @@ public class ResourceItem
 
     //资源对像
     public Object m_Obj = null;
+
+    //资源唯一标识
+    public int m_Guid = 0;
     //资源最后所使用的时间
     public float m_lastUseTime = 0.0f;
     //引用计数

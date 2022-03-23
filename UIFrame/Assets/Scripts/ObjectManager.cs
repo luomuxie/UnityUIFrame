@@ -5,7 +5,7 @@ using System;
 
 public class ObjectManager : Singleton<ObjectManager>
 {
-    public ClassObjectPool<ResourceTest> test = ObjectManager.Instance.getOrCreateClassPool<ResourceTest>(100);
+    //public ClassObjectPool<ResourceTest> test = ObjectManager.Instance.getOrCreateClassPool<ResourceTest>(100);
 
 
     protected Dictionary<Type, object> m_classPoolDic = new Dictionary<Type, object>();
@@ -23,9 +23,4 @@ public class ObjectManager : Singleton<ObjectManager>
         return outObj as ClassObjectPool<T>;
     }
 
-    public void testClasee()
-    {
-        test.Spawn(true);
-        
-    }
 }
