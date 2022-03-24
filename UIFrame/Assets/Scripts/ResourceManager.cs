@@ -65,11 +65,11 @@ public class ResourceManager : Singleton<ResourceManager>
     public long MAXLOADERSTIME = 20000;
 
 
-    protected void Init(MonoBehaviour mono)
+    public void Init(MonoBehaviour mono)
     {
         for (int i = 0; i < (int)LoadResPrority.RES_NUM; i++)
         {
-
+            m_loadingAssetList[i] = new List<AsyncLoadResParm>();
         }
         m_Startmono = mono;
         m_Startmono.StartCoroutine(AsyncLoadCor());
@@ -242,6 +242,10 @@ public class ResourceManager : Singleton<ResourceManager>
         if(item.m_Obj != null)
         {
             item.m_Obj = null;
+#if UNITY_EDITOR
+            Resources.UnloadUnusedAssets();
+#endif
+            
         }
     }
 
@@ -313,7 +317,7 @@ public class ResourceManager : Singleton<ResourceManager>
                     item = AssetBundleManager.Instance.FindResourceItem(loadingItem.m_Crc);
                 }
 #endif
-                if(obj != null)
+                if(obj == null)
                 {
                     item = AssetBundleManager.Instance.LoadResourceAssetBundle(loadingItem.m_Crc);
                     if(item != null && item.m_AssetBundle != null)

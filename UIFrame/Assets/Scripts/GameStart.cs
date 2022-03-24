@@ -10,23 +10,40 @@ public class GameStart : MonoBehaviour
     private void Awake()
     {
        AssetBundleManager.Instance.LoadAssetBundleConfig();
+       ResourceManager.Instance.Init(this);
     }
 
     private void Start()
     {
-        
-        m_clip = ResourceManager.Instance.loaadResource<AudioClip>("Assets/GameData/Sounds/senlin.mp3");
-        m_audio.clip = m_clip;
-        m_audio.Play();
+
+        // m_clip = ResourceManager.Instance.loaadResource<AudioClip>("Assets/GameData/Sounds/senlin.mp3");//同步加裁
+        //m_audio.clip = m_clip;
+        //m_audio.Play();
+        ResourceManager.Instance.AsysLoadResource("Assets/GameData/Sounds/senlin.mp3",onLoadFinish,LoadResPrority.RES_MIDDLE);//异步加载
+
     }
 
     private void Update()
     {
         if (Input.GetKey(KeyCode.A)){
             m_audio.Stop();
-            ResourceManager.Instance.ReleaseRsouce(m_clip,true);
+            ResourceManager.Instance.ReleaseRsouce(m_clip);
             m_clip = null;
         }
+    }
+
+    void onLoadFinish(string path,Object obj,object parm1,object parm2,object parm3)
+    {
+        m_clip = obj as AudioClip;
+        m_audio.clip = m_clip;
+        m_audio.Play();
+    }
+
+    void OnApplicationQuit()
+    {
+#if UNITY_EDITOR
+        Resources.UnloadUnusedAssets();
+#endif
     }
 
 }
