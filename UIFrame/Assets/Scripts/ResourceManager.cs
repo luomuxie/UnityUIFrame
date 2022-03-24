@@ -2,6 +2,48 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+public enum LoadResPrority
+{
+    RES_HIGHT = 0,
+    RES_MIDDLE,
+    RES_SLOW,
+    RES_NUM,
+}
+
+public class AsyncLoadResParm
+{
+   public List<AsysncCallBack> m_callbackList = new List<AsysncCallBack> ();
+    public uint m_Crc;
+    public string m_Path;
+    public bool m_Sprite = false;
+    public LoadResPrority m_Prority = LoadResPrority.RES_SLOW;
+
+    public void Rest()
+    {
+        m_callbackList.Clear();
+        m_Crc = 0;
+        m_Path = "";
+        m_Sprite = false;
+        m_Prority = LoadResPrority.RES_SLOW;
+    }
+}
+
+public class AsysncCallBack
+{
+    //加载完成的回调
+    public OnAsysncObjFinish m_DealFinish = null;
+    //回调参数
+    public object m_param1 = null,m_param2 = null, m_param3 = null;
+    public void Rest()
+    {
+        m_DealFinish=null; 
+        m_param1=null; 
+        m_param2=null;
+        m_param3=null;
+    }
+}
+
+public delegate void OnAsysncObjFinish(string path,Object obj ,object param1 = null,object param2 = null,object param3 = null);
 public class ResourceManager : Singleton<ResourceManager>
 {
 
@@ -10,6 +52,28 @@ public class ResourceManager : Singleton<ResourceManager>
     protected CMapList<ResourceItem> m_NoRefrenceAssetMapList = new CMapList<ResourceItem>();
     //缓存使用的资源列表
     public Dictionary<uint,ResourceItem> m_AssetDic { get; set; } = new Dictionary<uint,ResourceItem>();
+
+    protected MonoBehaviour m_Startmono;
+    //正在异步加载的资源列表
+    protected List<AsyncLoadResParm>[] m_loadingAssetList = new List<AsyncLoadResParm>[(int)(LoadResPrority.RES_NUM)];
+    //正在异步加载的Dic
+    protected Dictionary<uint, AsyncLoadResParm> m_LoadingAssetDic = new Dictionary<uint, AsyncLoadResParm>();
+
+    protected ClassObjectPool<AsyncLoadResParm> m_AsyncLoadResParmPool = new ClassObjectPool<AsyncLoadResParm>(50);
+    protected ClassObjectPool<AsysncCallBack> m_AsysncCallBack = new ClassObjectPool<AsysncCallBack>(100);
+
+    public long MAXLOADERSTIME = 20000;
+
+
+    protected void Init(MonoBehaviour mono)
+    {
+        for (int i = 0; i < (int)LoadResPrority.RES_NUM; i++)
+        {
+
+        }
+        m_Startmono = mono;
+        m_Startmono.StartCoroutine(AsyncLoadCor());
+    }
 
     void CacheResource(string path,ref ResourceItem item,uint crc,Object obj, int addrefcount = 1)
     {
@@ -178,6 +242,135 @@ public class ResourceManager : Singleton<ResourceManager>
         if(item.m_Obj != null)
         {
             item.m_Obj = null;
+        }
+    }
+
+    //---------------------------------
+
+    public void AsysLoadResource(string path,OnAsysncObjFinish dealFinish,LoadResPrority prority,object param1 = null,object param2 = null,object param3 = null,uint crc = 0)
+    {
+        if(crc == 0)
+        {
+            crc = CRC32.GetCRC32(path);
+        }
+        ResourceItem item = GetCacheResourceItem(crc);
+        if(item != null)
+        {
+            if(dealFinish != null)
+            {
+                dealFinish(path,item.m_Obj,param1,param2,param3);
+            }
+            return;
+        }
+
+        //判断是否正在加载
+        AsyncLoadResParm parm = null;
+        if (!m_LoadingAssetDic.TryGetValue(crc, out parm) && parm == null)
+        {
+            parm = m_AsyncLoadResParmPool.Spawn(true);
+            parm.m_Crc = crc; 
+            parm.m_Path = path;
+            parm.m_Prority = prority;
+            m_LoadingAssetDic.Add(crc,parm);
+            m_loadingAssetList[(int)prority].Add(parm);
+        }
+
+        AsysncCallBack callBack = m_AsysncCallBack.Spawn(true);
+        callBack.m_DealFinish = dealFinish;
+        callBack.m_param1 = param1; 
+        callBack.m_param2 = param2;
+        callBack.m_param3 = param3;
+        parm.m_callbackList.Add(callBack);
+
+
+
+    }
+    /// <summary>
+    /// 协程异步加载
+    /// </summary>
+    /// <returns></returns>
+    IEnumerator AsyncLoadCor()
+    {
+        List<AsysncCallBack> callBackList = null;
+        long lastYiledTime = System.DateTime.Now.Ticks;
+        while (true)
+        {
+            bool isHaveYield = false;
+            for (int i = 0; i < (int) LoadResPrority.RES_NUM; i++)
+            {
+                List<AsyncLoadResParm> loadingList = m_loadingAssetList[i];
+                if (loadingList.Count <= 0) continue;
+                AsyncLoadResParm loadingItem = loadingList[0];
+                loadingList.RemoveAt(0);
+                callBackList = loadingItem.m_callbackList;
+                Object obj = null;
+                ResourceItem item = null;
+
+#if UNITY_EDITOR
+                if (!m_loadFromAssetBundle)
+                {
+                    obj = loadAssetByEditor<Object>(loadingItem.m_Path);
+                    item = AssetBundleManager.Instance.FindResourceItem(loadingItem.m_Crc);
+                }
+#endif
+                if(obj != null)
+                {
+                    item = AssetBundleManager.Instance.LoadResourceAssetBundle(loadingItem.m_Crc);
+                    if(item != null && item.m_AssetBundle != null)
+                    {
+                        AssetBundleRequest assetBundleRequest = null;
+                        if (loadingItem.m_Sprite)
+                        {
+                            assetBundleRequest = item.m_AssetBundle.LoadAssetAsync<Sprite>(item.m_AssetName);
+                        }
+                        else
+                        {
+                            assetBundleRequest = item.m_AssetBundle.LoadAssetAsync(item.m_AssetName);
+                        }
+                         
+                        yield return assetBundleRequest;
+                        if (assetBundleRequest.isDone)
+                        {
+                            obj = assetBundleRequest.asset;
+                        }
+                        lastYiledTime = System.DateTime.Now.Ticks;
+                    }
+
+                }
+
+                CacheResource(loadingItem.m_Path,ref item,loadingItem.m_Crc,obj,callBackList.Count);
+                for (int j = 0; j < callBackList.Count; j++)
+                {
+                    AsysncCallBack callBack = callBackList[j];
+                    if(callBack != null && callBack.m_DealFinish != null)
+                    {
+                        callBack.m_DealFinish(loadingItem.m_Path, obj, callBack.m_param1, callBack.m_param2, callBack.m_param3);
+                        callBack.m_DealFinish = null;
+                    }
+
+                    callBack.Rest();
+                    m_AsysncCallBack.Recycle(callBack);                        
+                }
+
+                obj = null;
+                callBackList.Clear();
+                m_LoadingAssetDic.Remove(loadingItem.m_Crc);
+                loadingItem.Rest();
+                m_AsyncLoadResParmPool.Recycle(loadingItem);
+                if(System.DateTime.Now.Ticks-lastYiledTime> MAXLOADERSTIME)
+                {
+                    yield return null;
+                    lastYiledTime = System.DateTime.Now.Ticks;
+                    isHaveYield = true;
+                }
+            }
+
+            if (isHaveYield || System.DateTime.Now.Ticks - lastYiledTime > MAXLOADERSTIME)
+            {
+                lastYiledTime = System.DateTime.Now.Ticks;
+                yield return null;
+            }
+
         }
     }
     
