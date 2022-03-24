@@ -103,12 +103,19 @@ public class ResourceManager : Singleton<ResourceManager>
     }
     public void ClearCache()
     {
-        while (m_NoRefrenceAssetMapList.Size() > 0)
+        List<ResourceItem> tempList = new List<ResourceItem> ();
+        foreach (ResourceItem item in m_AssetDic.Values)
         {
-            ResourceItem item = m_NoRefrenceAssetMapList.Back();
-            DestoryResourceItem(item,true);
-            m_NoRefrenceAssetMapList.Pop();
+            if(item.m_isClear)
+            {
+                tempList.Add(item);
+            }
         }
+        foreach (ResourceItem item in tempList)
+        {
+            DestoryResourceItem(item, true);
+        }
+        tempList.Clear();
     }
 
     /// <summary>
@@ -319,18 +326,17 @@ public class ResourceManager : Singleton<ResourceManager>
             return;
         }
 
+        if (!destoryCache)
+        {
+            //m_NoRefrenceAssetMapList.InsertToHead(item);
+            return;
+        }
+
         if (!m_AssetDic.Remove(item.m_Crc))
         {
             return;
         }
-
-        if (!destoryCache)
-        {
-            m_NoRefrenceAssetMapList.InsertToHead(item);
-            return;
-        }
-
-
+       
         AssetBundleManager.Instance.ReleaseAsset(item);
         if(item.m_Obj != null)
         {
