@@ -184,6 +184,8 @@ public class ResourceItem
     public float m_lastUseTime = 0.0f;
     //引用计数
     protected int m_RefCount = 0;
+
+    public bool m_isClear = true;
     public int Refcount
     {
         get { return m_RefCount; }

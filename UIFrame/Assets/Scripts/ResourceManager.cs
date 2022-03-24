@@ -101,8 +101,75 @@ public class ResourceManager : Singleton<ResourceManager>
             m_AssetDic.Add(crc, item);
         }
     }
+    public void ClearCache()
+    {
+        while (m_NoRefrenceAssetMapList.Size() > 0)
+        {
+            ResourceItem item = m_NoRefrenceAssetMapList.Back();
+            DestoryResourceItem(item,true);
+            m_NoRefrenceAssetMapList.Pop();
+        }
+    }
 
-    public T loaadResource<T>(string path) where T : UnityEngine.Object
+    /// <summary>
+    /// 预加载：加裁后卸载到缓存中，不清理缓存
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="path"></param>
+    public void preLoadResource<T>(string path) 
+    {
+        if (string.IsNullOrEmpty(path))
+        {
+            return ;
+
+        }
+        uint crc = CRC32.GetCRC32(path);
+        ResourceItem item = GetCacheResourceItem(crc);
+        if (item != null)
+        {
+            return;
+        }
+        Object obj = null;
+#if UNITY_EDITOR
+        if (!m_loadFromAssetBundle)
+        {
+
+            item = AssetBundleManager.Instance.FindResourceItem(crc);
+            if (item.m_Obj != null)
+            {
+                obj = item.m_Obj ;
+            }
+            else
+            {
+                obj = loadAssetByEditor<Object>(path);
+            }
+
+        }
+#endif
+
+        if (obj == null)
+        {
+            item = AssetBundleManager.Instance.LoadResourceAssetBundle(crc);
+            if (item != null && item.m_AssetBundle != null)
+            {
+                if (item.m_Obj != null)
+                {
+                    obj = item.m_Obj;
+                }
+                else
+                {
+                    obj = item.m_AssetBundle.LoadAsset<Object>(item.m_AssetName);
+                }
+            }
+        }
+
+        CacheResource(path, ref item, crc, obj);
+        item.m_isClear = false;
+        ReleaseRsouce(path, false);
+    }
+
+
+    public T loadResource<T>(string path) where T : UnityEngine.Object
     {
         if (string.IsNullOrEmpty(path))
         {
@@ -152,14 +219,40 @@ public class ResourceManager : Singleton<ResourceManager>
         CacheResource(path,ref item,crc,obj);
         return obj;
     }
+
 #if UNITY_EDITOR
     protected T loadAssetByEditor<T>(string path)where T : UnityEngine.Object
     {
         return UnityEditor.AssetDatabase.LoadAssetAtPath<T>(path);
     }
 #endif
+
+
     /// <summary>
-    /// 不需要实例化的资源的卸载
+    /// /// 不需要实例化的资源的卸载，根据path
+    /// </summary>
+    /// <param name="path"></param>
+    /// <param name="destroyObj"></param>
+    /// <returns></returns>
+    public bool ReleaseRsouce(string path, bool destroyObj = false)
+    {
+        if (string.IsNullOrEmpty(path)) return false;
+
+        uint crc = CRC32.GetCRC32(path);
+        ResourceItem item = null;
+
+        if(!m_AssetDic.TryGetValue(crc, out item) || item == null)
+        {
+            Debug.LogError("AssetDic 里不存在该资源：" +path + "可能释放了多次");
+        }
+        item.Refcount--;
+        DestoryResourceItem(item, destroyObj);
+        return true;
+    }
+
+
+    /// <summary>
+    /// 不需要实例化的资源的卸载，根据obj
     /// </summary>
     /// <param name="obj"></param>
     /// <param name="destroyObj"></param>
