@@ -123,7 +123,7 @@ public class ResourceManager : Singleton<ResourceManager>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="path"></param>
-    public void preLoadResource<T>(string path) 
+    public void preLoadResource(string path) 
     {
         if (string.IsNullOrEmpty(path))
         {
