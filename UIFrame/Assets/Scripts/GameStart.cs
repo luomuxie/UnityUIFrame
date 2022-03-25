@@ -9,8 +9,11 @@ public class GameStart : MonoBehaviour
     private AudioClip m_clip;
     private void Awake()
     {
-       AssetBundleManager.Instance.LoadAssetBundleConfig();
-       ResourceManager.Instance.Init(this);
+        AssetBundleManager.Instance.LoadAssetBundleConfig();
+        ResourceManager.Instance.Init(this);
+        Transform trs = transform.Find("RecylePoolTrs");
+        Transform sceneTrs = transform.Find("SceneTrs");
+        ObjectManager.Instance.Init(trs, sceneTrs);
     }
 
     private void Start()

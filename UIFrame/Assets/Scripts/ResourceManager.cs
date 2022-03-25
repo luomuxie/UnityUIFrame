@@ -10,9 +10,24 @@ public enum LoadResPrority
     RES_NUM,
 }
 
+public class ResouceObj
+{
+    public uint m_Crc;
+    public bool m_bClear;
+    public GameObject m_ClondObj;
+    public ResourceItem m_ResItem;
+    public void Rest()
+    {
+        m_Crc = 0;
+        m_bClear = false;
+        m_ClondObj = null;
+        m_ResItem = null;
+    }
+}
+
 public class AsyncLoadResParm
 {
-   public List<AsysncCallBack> m_callbackList = new List<AsysncCallBack> ();
+    public List<AsysncCallBack> m_callbackList = new List<AsysncCallBack> ();
     public uint m_Crc;
     public string m_Path;
     public bool m_Sprite = false;
