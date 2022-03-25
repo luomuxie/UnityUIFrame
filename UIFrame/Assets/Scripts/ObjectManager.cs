@@ -9,13 +9,14 @@ public class ObjectManager : Singleton<ObjectManager>
     public Transform RecyclePoolTrs;
     public Transform SceneTrs;
     protected Dictionary<uint, List<ResouceObj>> m_ObjectPoolDic = new Dictionary<uint, List<ResouceObj>>();
-    protected ClassObjectPool<ResouceObj> m_ResourceObjClassPool = ObjectManager.Instance.getOrCreateClassPool<ResouceObj>(1000);
+    protected ClassObjectPool<ResouceObj> m_ResourceObjClassPool;
     protected Dictionary<int,ResouceObj> m_ResourceObjDic = new Dictionary<int, ResouceObj>();
 
     public void Init(Transform recycleTrs,Transform sceneTrs)
     {
         RecyclePoolTrs = recycleTrs;
         SceneTrs = sceneTrs;
+        m_ResourceObjClassPool = ObjectManager.Instance.getOrCreateClassPool<ResouceObj>(1000);
     }
     /// <summary>
     /// 从对像池中取得对像
@@ -25,9 +26,9 @@ public class ObjectManager : Singleton<ObjectManager>
     protected ResouceObj GetObjectFromPool(uint crc)
     {
         List<ResouceObj> st = null;
-        if(m_ObjectPoolDic.TryGetValue(crc, out st) || st!= null&& st.Count > 0)
+        if((m_ObjectPoolDic.TryGetValue(crc, out st) || st!= null)&& st.Count > 0)
         {
-            //引用计数待添加
+            ResourceManager.Instance.InCreaseResourceRef(crc);
             ResouceObj resObj = st[0]; 
             st.RemoveAt(0);
             GameObject obj = resObj.m_ClondObj;
@@ -80,7 +81,7 @@ public class ObjectManager : Singleton<ObjectManager>
             m_ResourceObjDic.Add(tempID, resouceObj);
         }
 
-        resouceObj.m_Already = true;
+        resouceObj.m_Already = false;
         return resouceObj.m_ClondObj;
     }
 
@@ -124,7 +125,7 @@ public class ObjectManager : Singleton<ObjectManager>
         {
             //回收到对像池
             List<ResouceObj> st = null;
-            if(m_ObjectPoolDic.TryGetValue(resObj.m_Crc, out st) || st == null)
+            if(!m_ObjectPoolDic.TryGetValue(resObj.m_Crc, out st) || st == null)
             {
                 st = new List<ResouceObj>();
                 m_ObjectPoolDic.Add(resObj.m_Crc,st); 
@@ -140,7 +141,6 @@ public class ObjectManager : Singleton<ObjectManager>
                     resObj.m_ClondObj.SetActive(false);
                 }
             }
-            //感觉这样写不太对呀maxCachCnt<0
             if (maxCachCnt<0 || st.Count < maxCachCnt)
             {
                 st.Add(resObj);
