@@ -16,12 +16,14 @@ public class ResouceObj
     public bool m_bClear;
     public GameObject m_ClondObj;
     public ResourceItem m_ResItem;
-    public void Rest()
+    public bool m_Already = false;
+    public void Reset()
     {
         m_Crc = 0;
         m_bClear = false;
         m_ClondObj = null;
         m_ResItem = null;
+        m_Already = false;
     }
 }
 
@@ -308,6 +310,26 @@ public class ResourceManager : Singleton<ResourceManager>
     }
 #endif
 
+    /// <summary>
+    /// 根据ResouceObj卸载资源
+    /// </summary>
+    /// <param name="resObj"></param>
+    /// <param name="destroyObj"></param>
+    /// <returns></returns>
+    public bool ReleaseRsouce(ResouceObj resObj, bool destroyObj = false)
+    {
+        if (resObj == null) return false;
+        ResourceItem item = null;
+
+        if (!m_AssetDic.TryGetValue(resObj.m_ResItem.m_Crc, out item) || item == null)
+        {
+            Debug.LogError("AssetDic 里不存在该资源：" + resObj.m_ClondObj.name + "可能释放了多次");
+        }
+        GameObject.Destroy(resObj.m_ClondObj);
+        item.Refcount--;
+        DestoryResourceItem(item, destroyObj);
+        return true;
+    }
 
     /// <summary>
     /// /// 不需要实例化的资源的卸载，根据path
