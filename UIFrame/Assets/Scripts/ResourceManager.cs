@@ -242,6 +242,65 @@ public class ResourceManager : Singleton<ResourceManager>
         return obj;
     }
 
+    /// <summary>
+    /// 同步加载，针对给ObjeManager的接口
+    /// </summary>
+    /// <param name="path"></param>
+    /// <param name="resObj"></param>
+    /// <returns></returns>
+    public ResouceObj LoadResource(string path,ResouceObj resObj)
+    {
+        if(resObj == null)
+        {
+            return null;
+        }
+
+        uint crc = resObj.m_Crc==0?CRC32.GetCRC32(path):resObj.m_Crc; ;
+        ResourceItem item = GetCacheResourceItem(crc);
+        if(item != null)
+        {
+            resObj.m_ResItem = item;
+            return resObj;
+        }
+
+        Object obj = null;
+#if UNITY_EDITOR
+        if (!m_loadFromAssetBundle)
+        {            
+            item = AssetBundleManager.Instance.FindResourceItem(resObj.m_Crc);
+            if (item.m_Obj != null)
+            {
+                obj = item.m_Obj as Object;
+            }
+            else
+            {
+                obj = loadAssetByEditor<Object>(path);
+            }
+        }
+#endif
+
+        if (obj == null)
+        {
+            item = AssetBundleManager.Instance.LoadResourceAssetBundle(crc);
+            if (item != null && item.m_AssetBundle != null)
+            {
+                if (item.m_Obj != null)
+                {
+                    obj = item.m_Obj as Object;
+                }
+                else
+                {
+                    obj = item.m_AssetBundle.LoadAsset<Object>(item.m_AssetName);
+                }
+            }
+        }
+
+        CacheResource(path,ref item, crc,obj);
+        resObj.m_ResItem = item;
+        item.m_isClear = resObj.m_bClear;
+        return resObj;
+    }
+
 #if UNITY_EDITOR
     protected T loadAssetByEditor<T>(string path)where T : UnityEngine.Object
     {
