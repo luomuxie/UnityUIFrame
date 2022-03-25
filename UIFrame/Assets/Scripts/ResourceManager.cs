@@ -61,20 +61,28 @@ public class AsyncLoadResParm
 
 public class AsysncCallBack
 {
+    public OnAsysncFinish m_DealFinish = null;
+    public ResouceObj m_ResObj = null;
+    //------------------------------------
     //加载完成的回调
-    public OnAsysncObjFinish m_DealFinish = null;
+    public OnAsysncObjFinish m_DealObjFinish = null;
     //回调参数
     public object m_param1 = null,m_param2 = null, m_param3 = null;
     public void Rest()
     {
-        m_DealFinish=null; 
+        m_DealObjFinish=null; 
         m_param1=null; 
         m_param2=null;
         m_param3=null;
+
+        m_DealFinish = null;
+        m_ResObj = null;
     }
 }
 
-public delegate void OnAsysncObjFinish(string path,Object obj ,object param1 = null,object param2 = null,object param3 = null)
+public delegate void OnAsysncObjFinish(string path, Object obj, object param1 = null, object param2 = null, object param3 = null);
+
+public delegate void OnAsysncFinish(string path, ResouceObj obj, object param1 = null, object param2 = null, object param3 = null);
 public class ResourceManager : Singleton<ResourceManager>
 {
 
@@ -91,7 +99,7 @@ public class ResourceManager : Singleton<ResourceManager>
     protected Dictionary<uint, AsyncLoadResParm> m_LoadingAssetDic = new Dictionary<uint, AsyncLoadResParm>();
 
     protected ClassObjectPool<AsyncLoadResParm> m_AsyncLoadResParmPool = new ClassObjectPool<AsyncLoadResParm>(50);
-    protected ClassObjectPool<AsysncCallBack> m_AsysncCallBack = new ClassObjectPool<AsysncCallBack>(100);
+    protected ClassObjectPool<AsysncCallBack> m_AsysncCallBackPool = new ClassObjectPool<AsysncCallBack>(100);
 
     public long MAXLOADERSTIME = 20000;
 
@@ -517,8 +525,6 @@ public class ResourceManager : Singleton<ResourceManager>
         }
     }
 
-    //---------------------------------
-
     public void AsysLoadResource(string path,OnAsysncObjFinish dealFinish,LoadResPrority prority,object param1 = null,object param2 = null,object param3 = null,uint crc = 0)
     {
         if(crc == 0)
@@ -547,16 +553,52 @@ public class ResourceManager : Singleton<ResourceManager>
             m_loadingAssetList[(int)prority].Add(parm);
         }
 
-        AsysncCallBack callBack = m_AsysncCallBack.Spawn(true);
-        callBack.m_DealFinish = dealFinish;
+        AsysncCallBack callBack = m_AsysncCallBackPool.Spawn(true);
+        callBack.m_DealObjFinish = dealFinish;
         callBack.m_param1 = param1; 
         callBack.m_param2 = param2;
         callBack.m_param3 = param3;
         parm.m_callbackList.Add(callBack);
-
-
-
     }
+
+
+    /// <summary>
+    /// 针对ObjecteManager的异步加载接口
+    /// </summary>
+    /// <param name="path"></param>
+    /// <param name="resObj"></param>
+    /// <param name="dealFinish"></param>
+    /// <param name="prority"></param>
+    public void AsyncLoadResource(string path,ResouceObj resObj,OnAsysncFinish dealFinish,LoadResPrority prority)
+    {
+        ResourceItem item = GetCacheResourceItem(resObj.m_Crc);
+        if(item != null)
+        {
+            resObj.m_ResItem = item;
+            if(dealFinish != null)
+            {
+                dealFinish(path,resObj);
+            }
+            return;
+        }
+        AsyncLoadResParm parm = null;
+        if(!m_LoadingAssetDic.TryGetValue(resObj.m_Crc,out parm) || parm == null)
+        {
+            parm = m_AsyncLoadResParmPool.Spawn(true);
+            parm.m_Crc = resObj.m_Crc;
+            parm.m_Path = path;
+            parm.m_Prority = prority;
+            m_LoadingAssetDic.Add(resObj.m_Crc,parm);
+            m_loadingAssetList[(int) prority].Add(parm); 
+        }
+
+        //往回调列表里面添加回调
+        AsysncCallBack callBack = m_AsysncCallBackPool.Spawn(true);
+        callBack.m_DealFinish = dealFinish;
+        callBack.m_ResObj = resObj;
+        parm.m_callbackList.Add(callBack);
+    }
+
     /// <summary>
     /// 协程异步加载
     /// </summary>
@@ -614,14 +656,24 @@ public class ResourceManager : Singleton<ResourceManager>
                 for (int j = 0; j < callBackList.Count; j++)
                 {
                     AsysncCallBack callBack = callBackList[j];
-                    if(callBack != null && callBack.m_DealFinish != null)
+                    if (callBack != null && callBack.m_DealFinish != null && callBack.m_ResObj != null)
                     {
-                        callBack.m_DealFinish(loadingItem.m_Path, obj, callBack.m_param1, callBack.m_param2, callBack.m_param3);
+                        ResouceObj tempResObj = callBack.m_ResObj;
+                        tempResObj.m_ResItem = item;
+                        callBack.m_DealFinish(loadingItem.m_Path, tempResObj, tempResObj.m_param1, tempResObj.m_param2, tempResObj.m_param3);
                         callBack.m_DealFinish = null;
+                        tempResObj = null;
+
+                    }
+
+                    if (callBack != null && callBack.m_DealObjFinish != null)
+                    {
+                        callBack.m_DealObjFinish(loadingItem.m_Path, obj, callBack.m_param1, callBack.m_param2, callBack.m_param3);
+                        callBack.m_DealObjFinish = null;
                     }
 
                     callBack.Rest();
-                    m_AsysncCallBack.Recycle(callBack);                        
+                    m_AsysncCallBackPool.Recycle(callBack);                        
                 }
 
                 obj = null;

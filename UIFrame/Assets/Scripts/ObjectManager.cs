@@ -94,7 +94,7 @@ public class ObjectManager : Singleton<ObjectManager>
         }
         uint crc = CRC32.GetCRC32(path); 
         ResouceObj resObj = GetObjectFromPool(crc);
-        if (resObj == null)
+        if (resObj != null)
         {
             if (setSceneObject)
             {
@@ -116,6 +116,44 @@ public class ObjectManager : Singleton<ObjectManager>
         resObj.m_param2 = param2;
         resObj.m_param3 = param3;
         //调用resourceMangage的异步加载接口
+        ResourceManager.Instance.AsyncLoadResource(path, resObj, OnLoadResourceObjFinish, prority);
+    }
+
+    /// <summary>
+    /// 资源加载完成回调
+    /// </summary>
+    /// <param name="path"></param>
+    /// <param name="resObj"></param>
+    /// <param name="param1"></param>
+    /// <param name="param2"></param>
+    /// <param name="param3"></param>
+    void OnLoadResourceObjFinish(string path,ResouceObj resObj,object param1 = null, object param2 = null,object param3 = null)
+    {
+        if (resObj == null) return;
+        if (resObj.m_ResItem.m_Obj == null)
+        {
+#if UNITY_EDITOR
+            Debug.Log("异步资源加载的资源为空"+path);
+#endif
+        }
+        else
+        {
+            resObj.m_ClondObj = GameObject.Instantiate(resObj.m_ResItem.m_Obj) as GameObject;
+        }
+        if (resObj.m_ClondObj != null && resObj.m_SetSceneParent)
+        {
+            resObj.m_ClondObj.transform.SetParent(SceneTrs,false);
+        }
+
+        if(resObj.m_DealFinish != null)
+        {
+            int tempID = resObj.m_ClondObj.GetInstanceID();
+            if (!m_ResourceObjDic.ContainsKey(tempID))
+            {
+                m_ResourceObjDic.Add(tempID, resObj);
+            }
+            resObj.m_DealFinish(path,resObj.m_ClondObj,resObj.m_param1,resObj.m_param2,resObj.m_param3);
+        }
     }
 
     /// <summary>
