@@ -8,9 +8,9 @@ public class ObjectManager : Singleton<ObjectManager>
     
     public Transform RecyclePoolTrs;
     public Transform SceneTrs;
-    protected Dictionary<uint, List<ResouceObj>> m_ObjectPoolDic = new Dictionary<uint, List<ResouceObj>>();
-    protected ClassObjectPool<ResouceObj> m_ResourceObjClassPool;
+    protected Dictionary<uint, List<ResouceObj>> m_ObjectPoolDic = new Dictionary<uint, List<ResouceObj>>();    
     protected Dictionary<int,ResouceObj> m_ResourceObjDic = new Dictionary<int, ResouceObj>();
+    protected ClassObjectPool<ResouceObj> m_ResourceObjClassPool;
 
     public void Init(Transform recycleTrs,Transform sceneTrs)
     {
@@ -46,6 +46,24 @@ public class ObjectManager : Singleton<ObjectManager>
             return resObj;
         }
         return null;
+    }
+
+    public void preloadGameObject(string path,int cnt = 1,bool clear = false)
+    {
+        List<GameObject> tempGameObjecteList = new List<GameObject>();
+        for (int i = 0; i < cnt; i++)
+        {
+            GameObject obj = InstantiateObject(path, false, clear);
+            tempGameObjecteList.Add(obj);
+        }
+
+        for (int i = 0; i < cnt; i++)
+        {
+            GameObject obj = tempGameObjecteList[i];
+            ReleaseObject(obj); ;
+            obj = null;
+        }
+        tempGameObjecteList.Clear();
     }
 
     /// <summary>

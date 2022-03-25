@@ -26,7 +26,8 @@ public class GameStart : MonoBehaviour
         //ResourceManager.Instance.AsysLoadResource("Assets/GameData/Sounds/senlin.mp3",onLoadFinish,LoadResPrority.RES_MIDDLE);//“Ï≤Ωº”‘ÿ
         //ResourceManager.Instance.preLoadResource("Assets/GameData/Sounds/senlin.mp3");
         //m_obj = ObjectManager.Instance.InstantiateObject("Assets/GameData/Prefabs/Attack.prefab",true);
-        ObjectManager.Instance.InstantiateObjecteAsync("Assets/GameData/Prefabs/Attack.prefab", onLoadFinish, LoadResPrority.RES_HIGHT, true);
+        //ObjectManager.Instance.InstantiateObjecteAsync("Assets/GameData/Prefabs/Attack.prefab", onLoadFinish, LoadResPrority.RES_HIGHT, true);
+        ObjectManager.Instance.preloadGameObject("Assets/GameData/Prefabs/Attack.prefab", 20);
     }
 
     private void Update()
