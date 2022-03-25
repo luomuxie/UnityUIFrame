@@ -63,6 +63,7 @@ public class ObjectManager : Singleton<ObjectManager>
             resouceObj.m_Crc = crc;
             resouceObj.m_bClear = bClear;
             //ResourceManager提供加载方法
+            ResourceManager.Instance.InCreaseResourceRef(resouceObj);
             resouceObj = ResourceManager.Instance.LoadResource(path,resouceObj);
             if(resouceObj.m_ResItem.m_Obj != null)
             {
@@ -115,7 +116,7 @@ public class ObjectManager : Singleton<ObjectManager>
         {
             //不放回对像池
             m_ResourceObjDic.Remove(tempID);
-            ResourceManager.Instance.ReleaseRsouce(resObj,destoryCache);
+            ResourceManager.Instance.ReleaseResource(resObj,destoryCache);
             resObj.Reset();
             m_ResourceObjClassPool.Recycle(resObj);
         }
@@ -143,12 +144,13 @@ public class ObjectManager : Singleton<ObjectManager>
             if (maxCachCnt<0 || st.Count < maxCachCnt)
             {
                 st.Add(resObj);
-                resObj.m_Already = false;
+                resObj.m_Already = true;
+                ResourceManager.Instance.DecreaseResourceRef(resObj);
             }
             else
             {
                 m_ResourceObjDic.Remove(tempID) ;
-                ResourceManager.Instance.ReleaseRsouce(resObj, destoryCache);
+                ResourceManager.Instance.ReleaseResource(resObj, destoryCache);
                 resObj.Reset();
                 m_ResourceObjClassPool.Recycle(resObj);
             }

@@ -311,12 +311,71 @@ public class ResourceManager : Singleton<ResourceManager>
 #endif
 
     /// <summary>
+    /// 通过obj增加引用次数
+    /// </summary>
+    /// <param name="resObj"></param>
+    /// <param name="cnt"></param>
+    /// <returns></returns>
+    public int InCreaseResourceRef(ResouceObj resObj,int cnt = 1)
+    {
+        return resObj != null? InCreaseResourceRef(resObj.m_Crc,cnt):0;
+    }
+
+    /// <summary>
+    /// 通过crc增加引用次数
+    /// </summary>
+    /// <param name="crc"></param>
+    /// <param name="cnt"></param>
+    /// <returns></returns>
+    public int InCreaseResourceRef(uint crc = 0, int cnt = 1)
+    {
+        ResourceItem item = null;
+        if(!m_AssetDic.TryGetValue(crc, out item) || item == null)
+        {
+            return 0;
+        }
+
+        item.Refcount += cnt;
+        item.m_lastUseTime = Time.realtimeSinceStartup;
+        return item.Refcount;
+    }
+
+   /// <summary>
+   /// 根据resObj减少引用次数
+   /// </summary>
+   /// <param name="resObj"></param>
+   /// <param name="cnt"></param>
+   /// <returns></returns>
+    public int DecreaseResourceRef(ResouceObj resObj,int cnt = 1)
+    {
+        return resObj != null ? DecreaseResourceRef(resObj.m_Crc, cnt) : 0;
+    }
+
+    /// <summary>
+    /// 根据crc减少引用次数
+    /// </summary>
+    /// <param name="crc"></param>
+    /// <param name="cnt"></param>
+    /// <returns></returns>
+    public int DecreaseResourceRef(uint crc, int cnt = 1)
+    {
+        ResourceItem item = null;
+        if(m_AssetDic.TryGetValue((uint)crc, out item) && item == null)
+        {
+            return 0;
+        }
+        item.Refcount -= cnt;
+        return item.Refcount;
+    }
+
+
+    /// <summary>
     /// 根据ResouceObj卸载资源
     /// </summary>
     /// <param name="resObj"></param>
     /// <param name="destroyObj"></param>
     /// <returns></returns>
-    public bool ReleaseRsouce(ResouceObj resObj, bool destroyObj = false)
+    public bool ReleaseResource(ResouceObj resObj, bool destroyObj = false)
     {
         if (resObj == null) return false;
         ResourceItem item = null;
