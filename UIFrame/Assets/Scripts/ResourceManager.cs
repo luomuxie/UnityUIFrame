@@ -20,6 +20,8 @@ public class ResouceObj
     public ResourceItem m_ResItem;
     //是否已经放回对象池
     public bool m_Already = false;
+    //储存异步加载的GUID
+    public long m_Guid = 0;
 
     //---------------------------------
     //是否放到场景节点下面
@@ -48,7 +50,7 @@ public class AsyncLoadResParm
     public bool m_Sprite = false;
     public LoadResPrority m_Prority = LoadResPrority.RES_SLOW;
 
-    public void Rest()
+    public void Reset()
     {
         m_callbackList.Clear();
         m_Crc = 0;
@@ -68,7 +70,7 @@ public class AsysncCallBack
     public OnAsysncObjFinish m_DealObjFinish = null;
     //回调参数
     public object m_param1 = null,m_param2 = null, m_param3 = null;
-    public void Rest()
+    public void Reset()
     {
         m_DealObjFinish=null; 
         m_param1=null; 
@@ -85,6 +87,7 @@ public delegate void OnAsysncObjFinish(string path, Object obj, object param1 = 
 public delegate void OnAsysncFinish(string path, ResouceObj obj, object param1 = null, object param2 = null, object param3 = null);
 public class ResourceManager : Singleton<ResourceManager>
 {
+    protected long m_Guid = 0;
 
     public bool m_loadFromAssetBundle = true;
     //缓存引用计数为零的资源列表，达到缓存最大的时候释放列表里面最早没用的资源
@@ -112,6 +115,11 @@ public class ResourceManager : Singleton<ResourceManager>
         }
         m_Startmono = mono;
         m_Startmono.StartCoroutine(AsyncLoadCor());
+    }
+
+    public long CreateGuid() 
+    {
+        return m_Guid++;
     }
 
     void CacheResource(string path,ref ResourceItem item,uint crc,Object obj, int addrefcount = 1)
@@ -155,6 +163,39 @@ public class ResourceManager : Singleton<ResourceManager>
             DestoryResourceItem(item, true);
         }
         tempList.Clear();
+    }
+
+    /// <summary>
+    /// 取消异步加载
+    /// </summary>
+    /// <returns></returns>
+    public bool CancerLoad(ResouceObj res)
+    {
+        AsyncLoadResParm parm = null;
+        if(m_LoadingAssetDic.TryGetValue (res.m_Crc, out parm) && m_loadingAssetList[(int)parm.m_Prority].Contains(parm))
+        {
+            for (int i = parm.m_callbackList.Count; i>0; i--)
+            {
+                AsysncCallBack tempCallBack = parm.m_callbackList[i];
+                if (tempCallBack != null&& res == tempCallBack.m_ResObj)
+                {
+                    tempCallBack.Reset();
+                    m_AsysncCallBackPool.Recycle(tempCallBack);
+                    parm.m_callbackList.Remove(tempCallBack); 
+                }
+            }
+
+            if (parm.m_callbackList.Count <= 0)
+            {
+                parm.Reset();
+                m_loadingAssetList[(int)parm.m_Prority].Remove(parm);
+                m_AsyncLoadResParmPool.Recycle(parm);
+                m_LoadingAssetDic.Remove(res.m_Crc);
+                return true;
+            }
+        }
+        return false;
+
     }
 
     /// <summary>
@@ -672,14 +713,14 @@ public class ResourceManager : Singleton<ResourceManager>
                         callBack.m_DealObjFinish = null;
                     }
 
-                    callBack.Rest();
+                    callBack.Reset();
                     m_AsysncCallBackPool.Recycle(callBack);                        
                 }
 
                 obj = null;
                 callBackList.Clear();
                 m_LoadingAssetDic.Remove(loadingItem.m_Crc);
-                loadingItem.Rest();
+                loadingItem.Reset();
                 m_AsyncLoadResParmPool.Recycle(loadingItem);
                 if(System.DateTime.Now.Ticks-lastYiledTime> MAXLOADERSTIME)
                 {
