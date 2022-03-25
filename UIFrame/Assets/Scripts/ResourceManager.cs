@@ -13,10 +13,19 @@ public enum LoadResPrority
 public class ResouceObj
 {
     public uint m_Crc;
+    //是否跳场清除
     public bool m_bClear;
+    //实例化出来的GameObject
     public GameObject m_ClondObj;
     public ResourceItem m_ResItem;
+    //是否已经放回对象池
     public bool m_Already = false;
+
+    //---------------------------------
+    //是否放到场景节点下面
+    public bool m_SetSceneParent = false;
+    public OnAsysncObjFinish m_DealFinish = null;
+    public object m_param1 = null, m_param2 = null, m_param3 = null;
     public void Reset()
     {
         m_Crc = 0;
@@ -24,6 +33,10 @@ public class ResouceObj
         m_ClondObj = null;
         m_ResItem = null;
         m_Already = false;
+        m_DealFinish=null;
+        m_param1 = null;
+        m_param2 = null;
+        m_param3 = null;
     }
 }
 
@@ -42,6 +55,7 @@ public class AsyncLoadResParm
         m_Path = "";
         m_Sprite = false;
         m_Prority = LoadResPrority.RES_SLOW;
+
     }
 }
 
@@ -60,7 +74,7 @@ public class AsysncCallBack
     }
 }
 
-public delegate void OnAsysncObjFinish(string path,Object obj ,object param1 = null,object param2 = null,object param3 = null);
+public delegate void OnAsysncObjFinish(string path,Object obj ,object param1 = null,object param2 = null,object param3 = null)
 public class ResourceManager : Singleton<ResourceManager>
 {
 

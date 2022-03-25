@@ -85,6 +85,39 @@ public class ObjectManager : Singleton<ObjectManager>
         return resouceObj.m_ClondObj;
     }
 
+
+    public void InstantiateObjecteAsync(string path, OnAsysncObjFinish dealFinish, LoadResPrority prority, bool setSceneObject = false, object param1 = null, object param2 = null, object param3 = null,bool bClear = true)
+    {
+        if (string.IsNullOrEmpty(path))
+        {
+            return;
+        }
+        uint crc = CRC32.GetCRC32(path); 
+        ResouceObj resObj = GetObjectFromPool(crc);
+        if (resObj == null)
+        {
+            if (setSceneObject)
+            {
+                resObj.m_ClondObj.transform.SetParent(SceneTrs,false);
+            }
+            if(dealFinish != null)
+            {
+                dealFinish(path,resObj.m_ClondObj,param1,param2,param3);
+            }
+            return;
+        }
+
+        resObj = m_ResourceObjClassPool.Spawn(true);
+        resObj.m_Crc = crc;
+        resObj.m_SetSceneParent = setSceneObject;
+        resObj.m_bClear = bClear;
+        resObj.m_DealFinish = dealFinish;
+        resObj.m_param1 = param1;
+        resObj.m_param2 = param2;
+        resObj.m_param3 = param3;
+        //调用resourceMangage的异步加载接口
+    }
+
     /// <summary>
     /// 回收资源
     /// </summary>
