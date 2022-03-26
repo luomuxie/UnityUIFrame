@@ -60,6 +60,39 @@ public class ObjectManager : Singleton<ObjectManager>
         }
         tempList.Clear();
     }
+
+    /// <summary>
+    /// 清空某资源在对像池中的所有引用
+    /// </summary>
+    /// <param name="crc"></param>
+    public void ClearPoolObject(uint crc)
+    {
+        List<ResouceObj> st = null;
+        if (!m_ObjectPoolDic.TryGetValue(crc, out st) || st == null)
+        {
+            return;
+        }
+
+        for (int i = st.Count-1; i >=0; i++)
+        {
+            ResouceObj resouceObj = st[i];
+            if (resouceObj.m_bClear)
+            {
+                st.Remove(resouceObj);
+                int tempID = resouceObj.m_ClondObj.GetInstanceID();
+                GameObject.Destroy(resouceObj.m_ClondObj);
+                resouceObj.Reset();
+                m_ResourceObjDic.Remove(tempID);
+                m_ResourceObjClassPool.Recycle(resouceObj);
+            }
+        }
+        if (st.Count <= 0)
+        {
+            m_ObjectPoolDic.Remove(crc);
+        }
+        st.Clear();
+        
+    }
     /// <summary>
     /// 从对像池中取得对像
     /// </summary>
