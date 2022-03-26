@@ -8,8 +8,11 @@ public class ObjectManager : Singleton<ObjectManager>
     
     public Transform RecyclePoolTrs;
     public Transform SceneTrs;
+    //对象池
     protected Dictionary<uint, List<ResouceObj>> m_ObjectPoolDic = new Dictionary<uint, List<ResouceObj>>();    
+    //暂存ResObj的Dic
     protected Dictionary<int,ResouceObj> m_ResourceObjDic = new Dictionary<int, ResouceObj>();
+    //ResourceObj的类对象池
     protected ClassObjectPool<ResouceObj> m_ResourceObjClassPool;
     //根据异步的guid储存ResourceObj,来判断是否正在异步加载
     protected Dictionary<long, ResouceObj> m_AysncResObjs = new Dictionary<long, ResouceObj>();
@@ -19,6 +22,43 @@ public class ObjectManager : Singleton<ObjectManager>
         RecyclePoolTrs = recycleTrs;
         SceneTrs = sceneTrs;
         m_ResourceObjClassPool = ObjectManager.Instance.getOrCreateClassPool<ResouceObj>(1000);
+    }
+    /// <summary>
+    /// 清空对象池
+    /// </summary>
+    public void ClearCache()
+    {
+        List<uint> tempList = new List<uint>();
+        foreach (uint key in m_ObjectPoolDic.Keys)
+        {
+            List<ResouceObj> st = m_ObjectPoolDic[key];
+            for (int i = st.Count; i >= 0; i--)
+            {
+                ResouceObj resObj = st[i];
+                if(!System.Object.ReferenceEquals(resObj, null) && resObj.m_bClear)
+                {
+                    GameObject.Destroy(resObj.m_ClondObj);
+                    m_ResourceObjDic.Remove(resObj.m_ClondObj.GetInstanceID());
+                    resObj.Reset();
+                    m_ResourceObjClassPool.Recycle(resObj);
+                }
+            }
+
+            if (st.Count <= 0)
+            {
+                tempList.Add(key);
+            }
+        }
+
+        for (int i = 0; i < tempList.Count; i++)
+        {
+            uint temp = tempList[i];
+            if (m_ObjectPoolDic.ContainsKey(temp))
+            {
+                m_ObjectPoolDic.Remove(tempList[i]);
+            }            
+        }
+        tempList.Clear();
     }
     /// <summary>
     /// 从对像池中取得对像
@@ -60,6 +100,34 @@ public class ObjectManager : Singleton<ObjectManager>
         }
     }
 
+    /// <summary>
+    /// 是否正在异加载
+    /// </summary>
+    /// <param name="guid"></param>
+    /// <returns></returns>
+    public bool IsingAsyncLoad(long guid)
+    {
+        return m_AysncResObjs[guid] != null;
+    }
+
+    /// <summary>
+    /// 该对像是否对象池创建
+    /// </summary>
+    /// <param name="obj"></param>
+    /// <returns></returns>
+    public bool IsObjectManagerCreate(GameObject obj)
+    {
+        ResouceObj resObj = m_ResourceObjDic[obj.GetInstanceID()];
+        return  resObj != null;
+    }
+
+
+    /// <summary>
+    /// 预加载
+    /// </summary>
+    /// <param name="path"></param>
+    /// <param name="cnt"></param>
+    /// <param name="clear"></param>
 
     public void preloadGameObject(string path,int cnt = 1,bool clear = false)
     {
