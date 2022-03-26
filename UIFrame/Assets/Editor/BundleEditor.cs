@@ -42,7 +42,7 @@ public class BundleEditor
             }
             //Debug.Log(vo.ABname +" "+ vo.Path );
         }
-        string[] allStr = AssetDatabase.FindAssets("t:Prefab",null);
+        string[] allStr = AssetDatabase.FindAssets("t:Prefab",aBConfig.m_allPrefebPath.ToArray());
         for (int i = 0; i < allStr.Length; i++)
         {
             string path = AssetDatabase.GUIDToAssetPath(allStr[i]);
