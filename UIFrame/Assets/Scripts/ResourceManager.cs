@@ -28,6 +28,8 @@ public class ResouceObj
     public bool m_SetSceneParent = false;
     public OnAsysncObjFinish m_DealFinish = null;
     public object m_param1 = null, m_param2 = null, m_param3 = null;
+    //ÀëÏßÊý¾Ý
+    public OfflineData m_OfflineData = null;
     public void Reset()
     {
         m_Crc = 0;
@@ -39,6 +41,7 @@ public class ResouceObj
         m_param1 = null;
         m_param2 = null;
         m_param3 = null;
+        m_OfflineData = null;
     }
 }
 

@@ -90,8 +90,24 @@ public class ObjectManager : Singleton<ObjectManager>
         {
             m_ObjectPoolDic.Remove(crc);
         }
-        st.Clear();
-        
+        st.Clear();        
+    }
+
+    /// <summary>
+    /// 根据实例化对像直接获取数据
+    /// </summary>
+    /// <param name="obj"></param>
+    /// <returns></returns>
+    public OfflineData FindOfflineData(GameObject obj)
+    {
+        OfflineData offlineData = null;
+        ResouceObj resouceObj = null;
+        m_ResourceObjDic.TryGetValue(obj.GetInstanceID(), out resouceObj);
+        if(resouceObj != null)
+        {
+            offlineData = resouceObj.m_OfflineData;
+        }
+        return offlineData;
     }
     /// <summary>
     /// 从对像池中取得对像
@@ -109,6 +125,11 @@ public class ObjectManager : Singleton<ObjectManager>
             GameObject obj = resObj.m_ClondObj;
             if(!System.Object.ReferenceEquals(obj, null))
             {
+                if(!System.Object.ReferenceEquals(resObj.m_OfflineData, null))
+                {
+                    resObj.m_OfflineData.ResetProp();
+                }
+                resObj.m_Already = false;
 #if UNITY_EDITOR
 
                 if (obj.name.EndsWith("(Recycle)"))
@@ -117,7 +138,6 @@ public class ObjectManager : Singleton<ObjectManager>
                 }
 #endif
             }
-
             return resObj;
         }
         return null;
@@ -201,6 +221,7 @@ public class ObjectManager : Singleton<ObjectManager>
             if(resouceObj.m_ResItem.m_Obj != null)
             {
                 resouceObj.m_ClondObj = GameObject.Instantiate(resouceObj.m_ResItem.m_Obj) as GameObject;
+                resouceObj.m_OfflineData = resouceObj.m_ClondObj.GetComponent<OfflineData>();
             }
         }
         if (setSceneObj)
@@ -275,6 +296,7 @@ public class ObjectManager : Singleton<ObjectManager>
         else
         {
             resObj.m_ClondObj = GameObject.Instantiate(resObj.m_ResItem.m_Obj) as GameObject;
+            resObj.m_OfflineData = resObj.m_ClondObj.GetComponent<OfflineData>();
         }
 
         //加载完成，从正在加载的异步中移除
